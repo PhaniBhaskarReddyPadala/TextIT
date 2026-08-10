@@ -200,35 +200,32 @@ export default function Dashboard() {
           ) : (
             <ul className="space-list">
               {spaces.map((space) => (
-                <li key={space.id}>
-                  <div
-                    className={`space-tab${activeSpaceId === space.id ? ' active' : ''}`}
+                <li
+                  key={space.id}
+                  className={`space-item${activeSpaceId === space.id ? ' active' : ''}`}
+                >
+                  <button
+                    className="space-tab"
                     onClick={() => setActiveSpaceId(space.id)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveSpaceId(space.id); }}
                     id={`space-tab-${space.id}`}
-                    role="button"
-                    tabIndex={0}
                   >
                     {spaceIcon(space)}
                     <span className="space-tab-name">{space.name}</span>
                     {space.isDefault && (
                       <span className="space-tab-badge">default</span>
                     )}
-                    {!space.isDefault && (
-                      <button
-                        className="space-delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSpace(space.id);
-                        }}
-                        disabled={deletingId === space.id}
-                        title="Delete space"
-                        aria-label={`Delete ${space.name}`}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
+                  </button>
+                  {!space.isDefault && (
+                    <button
+                      className="space-delete-btn"
+                      onClick={() => handleDeleteSpace(space.id)}
+                      disabled={deletingId === space.id}
+                      title="Delete space"
+                      aria-label={`Delete ${space.name}`}
+                    >
+                      ×
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
