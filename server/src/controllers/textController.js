@@ -12,6 +12,9 @@ const EXPIRY_MAP = {
   '7d': 7 * 24 * 60 * 60 * 1000,
 };
 
+// Maximum total storage per user (bytes of raw data stored in DB)
+const USER_STORAGE_LIMIT_BYTES = 30 * 1024 * 1024; // 30 MB
+
 const parseExpiry = (expiry) => {
   if (!expiry || expiry === 'never') return null;
   const ms = EXPIRY_MAP[expiry];
@@ -23,20 +26,50 @@ const getOwnedSpace = async (spaceId, userId) => {
   return Space.findOne({ _id: spaceId, userId });
 };
 
+/**
+ * Returns the total bytes currently stored by a user across all
+ * non-expired texts (content + imageData string lengths).
+ */
+const getUserStorageBytes = async (userId) => {
+  const now = new Date();
+  const [result] = await Text.aggregate([
+    {
+      $match: {
+        userId: new (require('mongoose').Types.ObjectId)(userId),
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $add: [
+              { $strLenBytes: { $ifNull: ['$content', ''] } },
+              { $strLenBytes: { $ifNull: ['$imageData', ''] } },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  return result?.total ?? 0;
+};
+
 // ─── Create text in a space ──────────────────────────────────────────────────
 
 const createText = async (req, res, next) => {
   try {
     const { spaceId } = req.params;
-    const { content, title, expiry, lockKey, imageData, language } = req.body;
+    const { content, title, expiry, lockKey, imageData, fileName, language } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
 
-    // Validate imageData is a proper data URL if provided
-    if (imageData && !imageData.startsWith('data:image/')) {
-      return res.status(400).json({ success: false, message: 'Invalid image data' });
+    // Validate fileData is a proper data URL if provided
+    if (imageData && !imageData.startsWith('data:')) {
+      return res.status(400).json({ success: false, message: 'Invalid file data' });
     }
 
     const space = await getOwnedSpace(spaceId, req.user.id);
@@ -44,8 +77,25 @@ const createText = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Space not found' });
     }
 
+    // ── Quota check: enforce 50 MB per-user storage cap ───────────────────────
+    const incomingBytes = Buffer.byteLength(content.trim(), 'utf8')
+      + (imageData ? Buffer.byteLength(imageData, 'utf8') : 0);
+    const usedBytes = await getUserStorageBytes(req.user.id);
+    if (usedBytes + incomingBytes > USER_STORAGE_LIMIT_BYTES) {
+      const usedMB  = (usedBytes / 1024 / 1024).toFixed(1);
+      const limitMB = (USER_STORAGE_LIMIT_BYTES / 1024 / 1024).toFixed(0);
+      return res.status(507).json({
+        success: false,
+        message: `Storage full — you are using ${usedMB} MB of your ${limitMB} MB limit. Delete some items to free space.`,
+        usedBytes,
+        limitBytes: USER_STORAGE_LIMIT_BYTES,
+      });
+    }
+
     let storedContent = content.trim();
+
     let storedImage = imageData || null;
+    let storedFileName = fileName?.trim() || null;
     let expiresAt = parseExpiry(expiry ?? (space.isLocked ? 'never' : '1d'));
 
     if (space.isLocked) {
@@ -59,6 +109,7 @@ const createText = async (req, res, next) => {
       }
       storedContent = encrypt(content.trim());
       if (storedImage) storedImage = encrypt(storedImage);
+      if (storedFileName) storedFileName = encrypt(storedFileName);
     }
 
     const text = await Text.create({
@@ -68,6 +119,7 @@ const createText = async (req, res, next) => {
       title: title?.trim() || '',
       expiresAt,
       imageData: storedImage,
+      fileName: storedFileName,
       language: language?.trim() || '',
     });
 
@@ -84,6 +136,7 @@ const createText = async (req, res, next) => {
     if (!space.isLocked) {
       responseData.content = text.content;
       responseData.imageData = text.imageData;
+      responseData.fileName = text.fileName || null;
     }
 
     res.status(201).json({ success: true, data: responseData });
@@ -117,7 +170,7 @@ const getTexts = async (req, res, next) => {
     // Select fields — for locked spaces never return content or imageData
     const selectFields = space.isLocked
       ? 'title isPinned language createdAt expiresAt'
-      : 'content title isPinned imageData language createdAt expiresAt';
+      : 'content title isPinned imageData fileName language createdAt expiresAt';
 
     const [texts, total] = await Promise.all([
       Text.find(query)
@@ -133,7 +186,7 @@ const getTexts = async (req, res, next) => {
       success: true,
       data: texts.map((t) => ({
         id: t._id,
-        ...(space.isLocked ? {} : { content: t.content, imageData: t.imageData || null }),
+        ...(space.isLocked ? {} : { content: t.content, imageData: t.imageData || null, fileName: t.fileName || null }),
         title: t.title || '',
         isPinned: t.isPinned || false,
         language: t.language || '',
@@ -175,6 +228,7 @@ const unlockText = async (req, res, next) => {
 
     const decrypted = decrypt(text.content);
     const decryptedImage = text.imageData ? decrypt(text.imageData) : null;
+    const decryptedFileName = text.fileName ? decrypt(text.fileName) : null;
 
     res.json({
       success: true,
@@ -182,6 +236,7 @@ const unlockText = async (req, res, next) => {
         id: text._id,
         content: decrypted,
         imageData: decryptedImage,
+        fileName: decryptedFileName,
         title: text.title,
         isPinned: text.isPinned || false,
         createdAt: text.createdAt,

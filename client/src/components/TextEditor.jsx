@@ -2,7 +2,27 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import QRCode from 'qrcode';
 import { api } from '../services/api';
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// File types the attach button accepts
+const ACCEPTED_TYPES = [
+  'image/*',
+  'application/pdf',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+].join(',');
+
+const FILE_ICONS = {
+  pdf: '📄',
+  ppt: '📊',
+  pptx: '📊',
+  default: '📎',
+};
+
+function getFileIcon(name = '') {
+  const ext = name.split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] ?? FILE_ICONS.default;
+}
 
 // ─── QR Popover ───────────────────────────────────────────────────────────────
 function QRPopover({ text, onClose }) {
@@ -76,8 +96,10 @@ export default function TextEditor({ spaceId, onSaved }) {
   const [expiry, setExpiry] = useState('1h');
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
-  const [imageData, setImageData] = useState(null); // Base64 data URL
-  const [imageError, setImageError] = useState('');
+  const [fileData, setFileData] = useState(null);   // Base64 data URL (any type)
+  const [fileInfo, setFileInfo] = useState(null);   // { name, type }
+  const [fileError, setFileError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [qrText, setQrText] = useState(null); // null = closed, string = open
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -90,19 +112,22 @@ export default function TextEditor({ spaceId, onSaved }) {
     el.style.height = `${Math.max(100, el.scrollHeight)}px`;
   }, [content]);
 
-  const handleImagePick = (e) => {
+  const handleFilePick = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageError('');
+    setFileError('');
 
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageError('Image too large (max 2 MB)');
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError('File too large (max 10 MB)');
       e.target.value = '';
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (ev) => setImageData(ev.target.result);
+    reader.onload = (ev) => {
+      setFileData(ev.target.result);
+      setFileInfo({ name: file.name, type: file.type });
+    };
     reader.readAsDataURL(file);
     e.target.value = ''; // reset so same file can be re-picked
   };
@@ -112,21 +137,26 @@ export default function TextEditor({ spaceId, onSaved }) {
     if (!trimmed || saving || !spaceId) return;
 
     setSaving(true);
+    setSaveError('');
     try {
       const res = await api.texts.create(spaceId, {
         content: trimmed,
         expiry,
-        imageData: imageData || undefined,
+        imageData: fileData || undefined,
+        fileName: fileInfo?.name || undefined,
       });
       if (res.success) {
         setContent('');
-        setImageData(null);
+        setFileData(null);
+        setFileInfo(null);
         setSavedMsg('Saved');
         setTimeout(() => setSavedMsg(''), 2000);
         onSaved(res.data);
+      } else {
+        setSaveError(res.message || 'Failed to save. Please try again.');
       }
     } catch {
-      // Silently fail — user can retry
+      setSaveError('Network error. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -159,21 +189,28 @@ export default function TextEditor({ spaceId, onSaved }) {
         id="text-editor"
       />
 
-      {/* Image preview */}
-      {imageData && (
+      {/* File preview */}
+      {fileData && (
         <div className="image-preview-wrap">
-          <img src={imageData} alt="Attachment preview" className="image-preview-thumb" />
+          {fileInfo?.type?.startsWith('image/') ? (
+            <img src={fileData} alt="Attachment preview" className="image-preview-thumb" />
+          ) : (
+            <div className="file-attach-preview">
+              <span className="file-attach-icon">{getFileIcon(fileInfo?.name)}</span>
+              <span className="file-attach-name">{fileInfo?.name}</span>
+            </div>
+          )}
           <button
             className="image-preview-remove"
-            onClick={() => setImageData(null)}
-            title="Remove image"
-            aria-label="Remove attached image"
+            onClick={() => { setFileData(null); setFileInfo(null); }}
+            title="Remove attachment"
+            aria-label="Remove attached file"
           >
             ×
           </button>
         </div>
       )}
-      {imageError && <p className="image-error">{imageError}</p>}
+      {fileError && <p className="image-error">{fileError}</p>}
 
       <div className="editor-footer">
         <div className="expiry-row">
@@ -193,22 +230,22 @@ export default function TextEditor({ spaceId, onSaved }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Hidden file input */}
+          {/* Hidden file input — images, PDFs, PowerPoints */}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={ACCEPTED_TYPES}
             style={{ display: 'none' }}
-            onChange={handleImagePick}
+            onChange={handleFilePick}
             id="image-file-input"
-            aria-label="Attach image"
+            aria-label="Attach file"
           />
           <button
             type="button"
-            className={`btn-attach${imageData ? ' has-image' : ''}`}
+            className={`btn-attach${fileData ? ' has-image' : ''}`}
             onClick={() => fileInputRef.current?.click()}
-            title={imageData ? 'Change image' : 'Attach image'}
-            aria-label="Attach image"
+            title={fileData ? `Change attachment (${fileInfo?.name})` : 'Attach image, PDF or PPT'}
+            aria-label="Attach file"
             id="attach-image-btn"
           >
             📎
@@ -253,6 +290,12 @@ export default function TextEditor({ spaceId, onSaved }) {
       <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
         Ctrl+Enter to save
       </div>
+
+      {saveError && (
+        <p className="image-error" style={{ marginTop: '6px' }} role="alert">
+          ⚠ {saveError}
+        </p>
+      )}
 
       {/* QR Popover */}
       {qrText !== null && (

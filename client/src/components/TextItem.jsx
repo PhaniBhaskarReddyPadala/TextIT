@@ -1,6 +1,12 @@
 import CopyButton from './CopyButton';
 import LinkCard from './LinkCard';
 
+const FILE_ICONS = { pdf: '📄', ppt: '📊', pptx: '📊', default: '📎' };
+function getFileIcon(name = '') {
+  const ext = name.split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] ?? FILE_ICONS.default;
+}
+
 function formatDate(iso) {
   const d = new Date(iso);
   const now = new Date();
@@ -58,14 +64,26 @@ export default function TextItem({ item, onDelete, onPin }) {
           <LinkedText text={item.content} />
         </div>
 
-        {/* Attached image */}
+        {/* Attached file — image or document */}
         {item.imageData && (
-          <img
-            src={item.imageData}
-            alt="Attached"
-            className="text-item-image"
-            loading="lazy"
-          />
+          item.imageData.startsWith('data:image/') ? (
+            <img
+              src={item.imageData}
+              alt="Attached"
+              className="text-item-image"
+              loading="lazy"
+            />
+          ) : (
+            <a
+              href={item.imageData}
+              download={item.fileName || 'attachment'}
+              className="text-item-file-link"
+              title={`Download ${item.fileName || 'attachment'}`}
+            >
+              <span className="file-link-icon">{getFileIcon(item.fileName)}</span>
+              <span className="file-link-name">{item.fileName || 'Download attachment'}</span>
+            </a>
+          )
         )}
 
         <div className="text-item-meta">{formatDate(item.createdAt)}</div>

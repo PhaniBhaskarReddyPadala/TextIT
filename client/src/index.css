@@ -873,7 +873,7 @@ select {
   padding-left: calc(16px - 3px);
 }
 
-/* ─── Attach Image Button ────────────────────────────────────────────────────── */
+/* ─── Attach File Button ─────────────────────────────────────────────────────── */
 .btn-attach {
   background: none;
   border: 1px solid var(--border);
@@ -925,7 +925,27 @@ select {
   margin-top: 4px;
 }
 
-/* ─── Attached Image (in text item) ─────────────────────────────────────────── */
+/* ─── Non-image file pill (in editor preview) ────────────────────────────────── */
+.file-attach-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  max-width: 240px;
+}
+.file-attach-icon { font-size: 18px; flex-shrink: 0; }
+.file-attach-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+/* ─── Attached image (in text item) ─────────────────────────────────────────── */
 .text-item-image {
   display: block;
   max-width: 100%;
@@ -934,6 +954,31 @@ select {
   border: 1px solid var(--border);
   margin-top: 8px;
   object-fit: contain;
+}
+
+/* ─── Attached document link (in text item) ──────────────────────────────────── */
+.text-item-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text);
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+  max-width: 100%;
+  overflow: hidden;
+}
+.text-item-file-link:hover { background: var(--bg3, var(--bg2)); border-color: var(--text); }
+.file-link-icon { font-size: 18px; flex-shrink: 0; }
+.file-link-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* ─── Code Space Styles ──────────────────────────────────────────────────────── */

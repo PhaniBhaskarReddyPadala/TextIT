@@ -29,8 +29,13 @@ const textSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Base64 data URL of an attached image (optional)
+    // Base64 data URL of an attached file — image, PDF, PPT, etc. (optional)
     imageData: {
+      type: String,
+      default: null,
+    },
+    // Original filename for non-image attachments
+    fileName: {
       type: String,
       default: null,
     },
