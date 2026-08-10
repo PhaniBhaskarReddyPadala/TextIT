@@ -63,13 +63,14 @@ const createText = async (req, res, next) => {
     const { spaceId } = req.params;
     const { content, title, expiry, lockKey, imageData, fileName, language } = req.body;
 
-    if (!content || !content.trim()) {
+    // Content is required unless a file attachment is provided
+    if ((!content || !content.trim()) && !imageData) {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
 
     // Validate fileData is a proper data URL if provided
     if (imageData && !imageData.startsWith('data:')) {
-      return res.status(400).json({ success: false, message: 'Invalid file data' });
+      return res.status(400).json({ success: false, message: 'Invalid image data — file must be sent as a data URL' });
     }
 
     const space = await getOwnedSpace(spaceId, req.user.id);

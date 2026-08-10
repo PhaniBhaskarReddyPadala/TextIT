@@ -116,6 +116,7 @@ export default function TextEditor({ spaceId, onSaved }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileError('');
+    setSaveError(''); // clear any previous save error when a new file is picked
 
     if (file.size > MAX_FILE_BYTES) {
       setFileError('File too large (max 10 MB)');
@@ -134,13 +135,14 @@ export default function TextEditor({ spaceId, onSaved }) {
 
   const save = async () => {
     const trimmed = content.trim();
-    if (!trimmed || saving || !spaceId) return;
+    // Allow saving if there is text, a file, or both
+    if ((!trimmed && !fileData) || saving || !spaceId) return;
 
     setSaving(true);
     setSaveError('');
     try {
       const res = await api.texts.create(spaceId, {
-        content: trimmed,
+        content: trimmed || ' ', // server requires non-empty content; use a space as placeholder for file-only items
         expiry,
         imageData: fileData || undefined,
         fileName: fileInfo?.name || undefined,
@@ -255,7 +257,7 @@ export default function TextEditor({ spaceId, onSaved }) {
           <button
             className="btn btn-primary"
             onClick={save}
-            disabled={saving || !content.trim()}
+            disabled={saving || (!content.trim() && !fileData)}
             id="save-btn"
           >
             {saving ? 'Saving…' : 'Save'}
