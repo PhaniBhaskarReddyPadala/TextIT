@@ -31,7 +31,7 @@ export default function Register() {
   return (
     <div className="auth-page">
       <div className="auth-box">
-        <div className="auth-logo">TextIt</div>
+        <div className="auth-logo">TextIT</div>
         <div className="auth-title">Create your account</div>
 
         <form onSubmit={handleSubmit} noValidate>

@@ -26,8 +26,8 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-box">
-        <div className="auth-logo">TextIt</div>
-        <div className="auth-tagline">Your text, anywhere.</div>
+        <div className="auth-logo">TextIT</div>
+        <div className="auth-tagline">One place to share text between your devices.</div>
 
         <form onSubmit={handleSubmit} noValidate>
           {error && <div className="error-msg">{error}</div>}

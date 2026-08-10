@@ -161,7 +161,7 @@ export default function Dashboard() {
       <header className="header">
         <div className="container">
           <div className="header-inner">
-            <span className="logo">TextIt</span>
+            <span className="logo">TextIT</span>
             <div className="header-actions">
               {user && (
                 <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
