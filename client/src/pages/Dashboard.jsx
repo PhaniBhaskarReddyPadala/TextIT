@@ -201,10 +201,13 @@ export default function Dashboard() {
             <ul className="space-list">
               {spaces.map((space) => (
                 <li key={space.id}>
-                  <button
+                  <div
                     className={`space-tab${activeSpaceId === space.id ? ' active' : ''}`}
                     onClick={() => setActiveSpaceId(space.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveSpaceId(space.id); }}
                     id={`space-tab-${space.id}`}
+                    role="button"
+                    tabIndex={0}
                   >
                     {spaceIcon(space)}
                     <span className="space-tab-name">{space.name}</span>
@@ -225,7 +228,7 @@ export default function Dashboard() {
                         ×
                       </button>
                     )}
-                  </button>
+                  </div>
                 </li>
               ))}
             </ul>
