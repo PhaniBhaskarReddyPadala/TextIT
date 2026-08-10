@@ -32,7 +32,8 @@ export const api = {
   spaces: {
     list: () => request('GET', '/spaces'),
     create: (data) => request('POST', '/spaces', data),
-    delete: (spaceId) => request('DELETE', `/spaces/${spaceId}`),
+    update: (spaceId, data) => request('PATCH', `/spaces/${spaceId}`, data),
+    delete: (spaceId, data) => request('DELETE', `/spaces/${spaceId}`, data),
     verifyLock: (spaceId, lockKey) => request('POST', `/spaces/${spaceId}/verify-lock`, { lockKey }),
   },
 

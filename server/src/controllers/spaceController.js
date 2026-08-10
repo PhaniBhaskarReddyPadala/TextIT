@@ -85,6 +85,47 @@ const createSpace = async (req, res, next) => {
   }
 };
 
+// ─── Update/Rename space ──────────────────────────────────────────────────────
+
+const updateSpace = async (req, res, next) => {
+  try {
+    const { name, lockKey } = req.body;
+    const { id } = req.params;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Space name is required' });
+    }
+
+    if (name.trim().length > 50) {
+      return res.status(400).json({ success: false, message: 'Space name must be 50 characters or less' });
+    }
+
+    const space = await Space.findOne({ _id: id, userId: req.user.id });
+
+    if (!space) {
+      return res.status(404).json({ success: false, message: 'Space not found' });
+    }
+
+    // If space is locked, verify lockKey password
+    if (space.isLocked) {
+      if (!lockKey) {
+        return res.status(400).json({ success: false, message: 'Password is required to rename a private space' });
+      }
+      const valid = await bcrypt.compare(lockKey, space.lockKeyHash);
+      if (!valid) {
+        return res.status(401).json({ success: false, message: 'Incorrect password for private space' });
+      }
+    }
+
+    space.name = name.trim();
+    await space.save();
+
+    res.json({ success: true, data: formatSpace(space) });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ─── Delete space ─────────────────────────────────────────────────────────────
 
 const deleteSpace = async (req, res, next) => {
@@ -97,6 +138,23 @@ const deleteSpace = async (req, res, next) => {
 
     if (space.isDefault) {
       return res.status(400).json({ success: false, message: 'Cannot delete the default space' });
+    }
+
+    // Require password for locked (private) spaces
+    if (space.isLocked) {
+      const lockKey = req.body?.lockKey || req.headers['x-lock-key'] || req.query?.lockKey;
+      if (!lockKey) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password is required to delete a private space',
+          isPasswordRequired: true,
+        });
+      }
+
+      const valid = await bcrypt.compare(lockKey, space.lockKeyHash);
+      if (!valid) {
+        return res.status(401).json({ success: false, message: 'Incorrect password for private space' });
+      }
     }
 
     // Delete all texts in this space first
@@ -140,4 +198,4 @@ const verifyLockKey = async (req, res, next) => {
   }
 };
 
-module.exports = { getSpaces, createSpace, deleteSpace, verifyLockKey, ensureDefaultSpace };
+module.exports = { getSpaces, createSpace, updateSpace, deleteSpace, verifyLockKey, ensureDefaultSpace };

@@ -101,8 +101,28 @@ body {
   gap: 2px;
 }
 
-.space-tab {
+.space-item {
   width: 100%;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius);
+  transition: background 0.1s;
+  position: relative;
+  padding-right: 4px;
+}
+
+.space-item:hover {
+  background: var(--border);
+}
+
+.space-item.active {
+  background: var(--text);
+  color: #fff;
+}
+
+.space-tab {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -113,19 +133,8 @@ body {
   cursor: pointer;
   font-family: var(--font);
   font-size: 13px;
-  color: var(--text);
+  color: inherit;
   text-align: left;
-  transition: background 0.1s;
-  position: relative;
-}
-
-.space-tab:hover {
-  background: var(--border);
-}
-
-.space-tab.active {
-  background: var(--text);
-  color: #fff;
 }
 
 .space-tab-icon {
@@ -153,30 +162,54 @@ body {
   flex-shrink: 0;
 }
 
-.space-tab.active .space-tab-badge {
+.space-item.active .space-tab-badge {
   background: rgba(255,255,255,0.2);
 }
 
-.space-delete-btn {
+.space-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   opacity: 0;
-  font-size: 14px;
-  color: inherit;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.space-item:hover .space-actions,
+.space-item:focus-within .space-actions {
+  opacity: 1;
+}
+
+.space-action-btn {
   background: none;
   border: none;
+  color: inherit;
+  font-size: 12px;
   cursor: pointer;
-  padding: 0 2px;
+  padding: 3px 5px;
+  border-radius: 4px;
   line-height: 1;
-  border-radius: 3px;
-  flex-shrink: 0;
-  transition: opacity 0.1s;
+  opacity: 0.65;
+  transition: opacity 0.15s, background 0.15s;
 }
 
-.space-tab:hover .space-delete-btn {
-  opacity: 0.5;
+.space-action-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
 }
 
-.space-delete-btn:hover {
-  opacity: 1 !important;
+.space-item.active .space-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.space-action-btn.space-delete-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
+.space-item.active .space-action-btn.space-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
 }
 
 /* ─── Locked gate (shown when space is locked) ────────────────────────────── */

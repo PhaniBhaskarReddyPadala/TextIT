@@ -6,6 +6,8 @@ import TextEditor from '../components/TextEditor';
 import TextItem from '../components/TextItem';
 import LockedSpaceView from '../components/LockedSpaceView';
 import CreateSpaceModal from '../components/CreateSpaceModal';
+import RenameSpaceModal from '../components/RenameSpaceModal';
+import DeleteSpaceModal from '../components/DeleteSpaceModal';
 
 // ── Lazy-loaded code space components (only downloaded when a Code space is clicked)
 const CodeEditor = lazy(() => import('../components/CodeEditor'));
@@ -19,7 +21,8 @@ export default function Dashboard() {
   const [loadingSpaces, setLoadingSpaces] = useState(true);
   const [activeSpaceId, setActiveSpaceId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
+  const [renamingSpace, setRenamingSpace] = useState(null);
+  const [deletingSpace, setDeletingSpace] = useState(null);
 
   // ── Texts state (for unlocked spaces) ─────────────────────────────────────
   const [texts, setTexts] = useState([]);
@@ -124,20 +127,19 @@ export default function Dashboard() {
     setShowCreateModal(false);
   };
 
-  const handleDeleteSpace = async (spaceId) => {
-    if (!window.confirm('Delete this space and all its texts?')) return;
-    setDeletingId(spaceId);
-    try {
-      await api.spaces.delete(spaceId);
-      setSpaces((prev) => prev.filter((s) => s.id !== spaceId));
-      if (activeSpaceId === spaceId) {
-        const remaining = spaces.filter((s) => s.id !== spaceId);
-        const def = remaining.find((s) => s.isDefault);
-        setActiveSpaceId(def ? def.id : remaining[0]?.id || null);
-      }
-    } finally {
-      setDeletingId(null);
+  const handleSpaceRenamed = (updatedSpace) => {
+    setSpaces((prev) => prev.map((s) => (s.id === updatedSpace.id ? updatedSpace : s)));
+    setRenamingSpace(null);
+  };
+
+  const handleSpaceDeleted = (deletedId) => {
+    setSpaces((prev) => prev.filter((s) => s.id !== deletedId));
+    if (activeSpaceId === deletedId) {
+      const remaining = spaces.filter((s) => s.id !== deletedId);
+      const def = remaining.find((s) => s.isDefault);
+      setActiveSpaceId(def ? def.id : remaining[0]?.id || null);
     }
+    setDeletingSpace(null);
   };
 
   const handleLogout = async () => {
@@ -215,17 +217,32 @@ export default function Dashboard() {
                       <span className="space-tab-badge">default</span>
                     )}
                   </button>
-                  {!space.isDefault && (
+                  <div className="space-actions">
                     <button
-                      className="space-delete-btn"
-                      onClick={() => handleDeleteSpace(space.id)}
-                      disabled={deletingId === space.id}
-                      title="Delete space"
-                      aria-label={`Delete ${space.name}`}
+                      className="space-action-btn space-rename-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRenamingSpace(space);
+                      }}
+                      title="Rename space"
+                      aria-label={`Rename ${space.name}`}
                     >
-                      ×
+                      ✏️
                     </button>
-                  )}
+                    {!space.isDefault && (
+                      <button
+                        className="space-action-btn space-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingSpace(space);
+                        }}
+                        title="Delete space"
+                        aria-label={`Delete ${space.name}`}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -346,11 +363,27 @@ export default function Dashboard() {
         </main>
       </div>
 
-      {/* ── Create Space Modal ── */}
+      {/* ── Modals ── */}
       {showCreateModal && (
         <CreateSpaceModal
           onCreated={handleSpaceCreated}
           onClose={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {renamingSpace && (
+        <RenameSpaceModal
+          space={renamingSpace}
+          onRenamed={handleSpaceRenamed}
+          onClose={() => setRenamingSpace(null)}
+        />
+      )}
+
+      {deletingSpace && (
+        <DeleteSpaceModal
+          space={deletingSpace}
+          onDeleted={handleSpaceDeleted}
+          onClose={() => setDeletingSpace(null)}
         />
       )}
     </>

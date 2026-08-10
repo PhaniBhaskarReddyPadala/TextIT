@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
-const { getSpaces, createSpace, deleteSpace, verifyLockKey } = require('../controllers/spaceController');
+const { getSpaces, createSpace, updateSpace, deleteSpace, verifyLockKey } = require('../controllers/spaceController');
 
 router.get('/', auth, getSpaces);
 router.post('/', auth, createSpace);
+router.patch('/:id', auth, updateSpace);
 router.delete('/:id', auth, deleteSpace);
 router.post('/:id/verify-lock', auth, verifyLockKey);
 
