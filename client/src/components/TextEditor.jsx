@@ -142,7 +142,7 @@ export default function TextEditor({ spaceId, onSaved }) {
     setSaveError('');
     try {
       const res = await api.texts.create(spaceId, {
-        content: trimmed || ' ', // server requires non-empty content; use a space as placeholder for file-only items
+        content: trimmed,
         expiry,
         imageData: fileData || undefined,
         fileName: fileInfo?.name || undefined,

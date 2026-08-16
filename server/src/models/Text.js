@@ -14,9 +14,11 @@ const textSchema = new mongoose.Schema(
       required: true,
     },
     // Plain text for unlocked spaces; JSON-encrypted for locked spaces
+    // Not required at schema level — controller validates that at least
+    // one of content / imageData is present before creation.
     content: {
       type: String,
-      required: [true, 'Content is required'],
+      default: '',
       maxlength: [200000, 'Content too large'],
     },
     title: {

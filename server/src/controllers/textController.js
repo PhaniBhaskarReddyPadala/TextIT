@@ -61,15 +61,17 @@ const getUserStorageBytes = async (userId) => {
 const createText = async (req, res, next) => {
   try {
     const { spaceId } = req.params;
-    const { content, title, expiry, lockKey, imageData, fileName, language } = req.body;
+    const { content: rawContent, title, expiry, lockKey, imageData, fileName, language } = req.body;
+    const content = (rawContent || '').trim();
 
     // Content is required unless a file attachment is provided
-    if ((!content || !content.trim()) && !imageData) {
+    if (!content && !imageData) {
       return res.status(400).json({ success: false, message: 'Content is required' });
     }
 
     // Validate fileData is a proper data URL if provided
-    if (imageData && !imageData.startsWith('data:')) {
+    if (imageData && typeof imageData === 'string' && !imageData.trimStart().startsWith('data:')) {
+      console.error('[createText] imageData rejected — first 80 chars:', imageData.substring(0, 80));
       return res.status(400).json({ success: false, message: 'Invalid image data — file must be sent as a data URL' });
     }
 
@@ -79,7 +81,7 @@ const createText = async (req, res, next) => {
     }
 
     // ── Quota check: enforce 50 MB per-user storage cap ───────────────────────
-    const incomingBytes = Buffer.byteLength(content.trim(), 'utf8')
+    const incomingBytes = Buffer.byteLength(content, 'utf8')
       + (imageData ? Buffer.byteLength(imageData, 'utf8') : 0);
     const usedBytes = await getUserStorageBytes(req.user.id);
     if (usedBytes + incomingBytes > USER_STORAGE_LIMIT_BYTES) {
@@ -93,7 +95,7 @@ const createText = async (req, res, next) => {
       });
     }
 
-    let storedContent = content.trim();
+    let storedContent = content;
 
     let storedImage = imageData || null;
     let storedFileName = fileName?.trim() || null;
@@ -108,7 +110,7 @@ const createText = async (req, res, next) => {
       if (!valid) {
         return res.status(401).json({ success: false, message: 'Incorrect lock key' });
       }
-      storedContent = encrypt(content.trim());
+      storedContent = encrypt(content);
       if (storedImage) storedImage = encrypt(storedImage);
       if (storedFileName) storedFileName = encrypt(storedFileName);
     }

@@ -60,9 +60,11 @@ export default function TextItem({ item, onDelete, onPin }) {
   return (
     <li className={`text-item${item.isPinned ? ' pinned' : ''}`}>
       <div className="text-item-body">
-        <div className="text-item-content">
-          <LinkedText text={item.content} />
-        </div>
+        {item.content ? (
+          <div className="text-item-content">
+            <LinkedText text={item.content} />
+          </div>
+        ) : null}
 
         {/* Attached file — image or document */}
         {item.imageData && (
@@ -99,7 +101,7 @@ export default function TextItem({ item, onDelete, onPin }) {
         >
           📌
         </button>
-        <CopyButton getText={item.content} />
+        {item.content ? <CopyButton getText={item.content} /> : null}
         <button
           className="btn-danger"
           onClick={() => onDelete(item.id)}
