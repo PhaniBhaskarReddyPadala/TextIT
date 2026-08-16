@@ -2,7 +2,9 @@
 
 🚀 **Live Demo:** [https://textitapp.vercel.app/](https://textitapp.vercel.app/)
 
-TextIT is a minimal, fast, and feature-rich text sharing application built on the MERN stack. It allows users to quickly share snippets, texts, code, and images across devices seamlessly. 
+TextIT is a minimal, fast, and feature-rich text sharing application built on the MERN stack. 
+
+💡 **The Core Problem It Solves:** Ever needed to send a link, snippet, or image from your phone to your laptop? Using email is cumbersome, and messaging apps like WhatsApp force you to load your entire chat history just to paste a link. **TextIT acts as your secure, cross-device cloud clipboard.** Thanks to seamless JWT authentication, you log in once and have instant, centralized access to your links, notes, and files across all your devices without the bloat of traditional messaging apps.
 
 ## ✨ Features
 
